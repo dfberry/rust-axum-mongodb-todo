@@ -21,6 +21,7 @@ use route::create_router;
 
 pub struct AppState {
     db: mongodb::Database,
+    app_host: String,
 }
 
 #[tokio::main]
@@ -29,6 +30,7 @@ async fn main() {
 
     // get PORT from env 
     let port = std::env::var("PORT").unwrap_or_else(|_| "8000".to_string());
+    let host_name: String = std::env::var("HOST").unwrap_or_else(|_| "localhost".to_string());
 
   
     let db = match database::get_database().await {
@@ -39,7 +41,11 @@ async fn main() {
         }
     };
 
-    let mut app = create_router(Arc::new(AppState { db: db.clone() }));
+    let mut app = create_router(Arc::new(AppState { 
+        db: db.clone(),
+        // concatenate host and port 
+        app_host: host_name + ":" + &port,
+    }));
 
     if let Ok(cors_required) = std::env::var("SERVER_CORS_REQUIRED") {
         if cors_required.to_lowercase() == "true" {

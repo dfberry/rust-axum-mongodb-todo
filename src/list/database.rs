@@ -1,16 +1,22 @@
-
+use crate::database_error::MyDBError::MongoDuplicateError;
+use crate::database_error::MyDBError::MongoQueryError;
+use crate::database_error::MyDBError::NotFoundError;
+use crate::list::database_model::ListDatabaseModel;
+use crate::list::request_model::NewListRequestModel;
+use bson::Bson;
 use chrono::prelude::*;
 use futures::StreamExt;
 use mongodb::bson::{doc, oid::ObjectId, Document};
 use mongodb::options::{FindOneAndUpdateOptions, FindOptions, IndexOptions, ReturnDocument};
 use mongodb::Database;
 use mongodb::{bson, options::ClientOptions, Client, Collection, IndexModel};
-use std::str::FromStr;
 use std::error::Error;
-use crate::list::model::ListModel;
-use crate::database_error::MyDBError::MongoQueryError;
-
-pub async fn fetch_list( collection: &Collection<ListModel>, limit: i64, page: i64) -> Result<Vec<ListModel>, Box<dyn Error>> {
+use std::str::FromStr;
+pub async fn fetch_list(
+    collection: &Collection<ListDatabaseModel>,
+    limit: i64,
+    page: i64,
+) -> Result<Vec<ListDatabaseModel>, Box<dyn Error>> {
     let find_options = FindOptions::builder()
         .limit(limit)
         .skip(u64::try_from((page - 1) * limit).unwrap())
@@ -21,14 +27,14 @@ pub async fn fetch_list( collection: &Collection<ListModel>, limit: i64, page: i
         .await
         .map_err(MongoQueryError)?;
 
-    let mut db_result: Vec<ListModel> = Vec::new();
+    let mut db_result: Vec<ListDatabaseModel> = Vec::new();
     while let Some(doc) = cursor.next().await {
         match doc {
             Ok(item) => db_result.push(item),
             Err(e) => {
                 println!("Error processing document: {}", e);
                 continue;
-            },
+            }
         }
     }
 
@@ -36,57 +42,34 @@ pub async fn fetch_list( collection: &Collection<ListModel>, limit: i64, page: i
 
     Ok(db_result)
 }
-/*
-    pub async fn create_list(&self, body: &CreateListSchema) -> Result<SingleListResponse> {
 
-        let document = self.create_list_document(body)?;
-
-        let options = IndexOptions::builder().unique(true).build();
-        let index = IndexModel::builder()
-            .keys(doc! {"name": 1})
-            .options(options)
-            .build();
-
-        match self.collection_client_with_type.create_index(index, None).await {
-            Ok(_) => {}
-            Err(e) => return Err(MongoQueryError(e)),
-        };
-
-        let insert_result = match self.collection_client_without_type.insert_one(&document, None).await {
-            Ok(result) => result,
-            Err(e) => {
-                if e.to_string()
-                    .contains("E11000 duplicate key error collection")
-                {
-                    return Err(MongoDuplicateError(e));
-                }
-                return Err(MongoQueryError(e));
+pub async fn create_list(
+    collection: &Collection<ListDatabaseModel>,
+    list: &ListDatabaseModel,
+) -> Result<ListDatabaseModel, Box<dyn Error>> {
+    // Insert into collection
+    let result = match collection.insert_one(list, None).await {
+        Ok(result) => result,
+        Err(e) => {
+            if e.to_string()
+                .contains("E11000 duplicate key error collection")
+            {
+                return Err(Box::new(MongoDuplicateError(e)));
             }
-        };
+            return Err(Box::new(MongoQueryError(e)));
+        }
+    };
+    let inserted_id_string: String = result.inserted_id.as_object_id().unwrap().to_hex();
+    let filter = doc! { "_id": result.inserted_id.as_object_id().unwrap() };
+    let inserted_doc = match collection.find_one(filter, None).await {
+        Ok(Some(doc)) => doc,
+        Ok(None) => return Err(Box::new(NotFoundError(inserted_id_string.clone()))),
+        Err(e) => return Err(Box::new(MongoQueryError(e))),
+    };
 
-        let new_id = insert_result
-            .inserted_id
-            .as_object_id()
-            .expect("issue with new _id");
-
-        let list_doc = match self
-            .collection_client_with_type
-            .find_one(doc! {"_id": new_id}, None)
-            .await
-        {
-            Ok(Some(doc)) => doc,
-            Ok(None) => return Err(NotFoundError(new_id.to_string())),
-            Err(e) => return Err(MongoQueryError(e)),
-        };
-
-        Ok(SingleListResponse {
-            status: "success",
-            data: ListData {
-                list: self.doc_to_list(&list_doc)?,
-            },
-        })
-    }
-
+    Ok(inserted_doc)
+}
+/*
     pub async fn get_list(&self, id: &str) -> Result<SingleListResponse> {
         let oid = ObjectId::from_str(id).map_err(|_| InvalidIDError(id.to_owned()))?;
 

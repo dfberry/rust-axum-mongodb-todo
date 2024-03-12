@@ -6,7 +6,7 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-axum = "0.7.4"
+axum = { version="0.7.4", features = ["macros"] }
 chrono = { version = "0.4.35", features = ["serde"] }
 dotenv = "0.15.0"
 futures = { version = "0.3.30", default-features = false, features = ["async-await"] }
@@ -22,3 +22,4 @@ tower = "0.4.13"
 hyper = "1.2.0"
 tracing = "0.1.40"
 rand = "0.8.5"
+http = "1.1.0"
