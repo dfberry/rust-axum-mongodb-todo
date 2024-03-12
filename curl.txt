@@ -1,0 +1,26 @@
+curl http://localhost:8000/api/notes
+
+
+curl -X "GET" -H "Content-Type: application/json"  http://localhost:8000/api/notes
+
+curl -X POST -H "Content-Type: application/json" -d '{"title":"my title 2", "content": "my content", "category": "new", "published":true}' http://localhost:8000/api/notes/
+
+curl -X PUT -H "Content-Type: application/json" -d '{"name":"test2-updated"}' http://localhost:8000/api/notes.65e4af448f1c934b68f61b88
+    {"matchedCount":1,"modifiedCount":1,"upsertedId":null}
+curl -X DELETE -H "Content-Type: application/json" http://localhost:8000/api/notes/65e4af448f1c934b68f61b88
+    {"deletedCount":1}
+
+
+//------------------------------------------------------
+
+curl http://localhost:8000/api/lists --verbose
+
+
+curl -X "GET" -H "Content-Type: application/json"  http://localhost:8000/api/notes
+
+curl -X POST -H "Content-Type: application/json" -d '{"name":"my list 3"}' http://localhost:8000/api/lists/ --verbose
+
+curl -X PUT -H "Content-Type: application/json" -d '{"name":"test2-updated"}' http://localhost:8000/api/notes.65e4af448f1c934b68f61b88
+    {"matchedCount":1,"modifiedCount":1,"upsertedId":null}
+curl -X DELETE -H "Content-Type: application/json" http://localhost:8000/api/notes/65e4af448f1c934b68f61b88
+    {"deletedCount":1}

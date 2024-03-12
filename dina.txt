@@ -1,0 +1,2 @@
+https://github.com/wpcodevo/rust-axum-mongodb/blob/master/src/schema.rs
+https://github.com/wpcodevo/reactjs-crud-note-app
