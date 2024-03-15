@@ -12,6 +12,7 @@ pub struct NewListRequestModel {
 pub struct UpdateListRequestModel {
     pub id: Option<String>,
     pub name: String,
-    pub createdAt: String
+    pub createdAt: String,
+    pub updatedDate: Option<String>
 
 }

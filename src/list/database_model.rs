@@ -5,6 +5,7 @@ use serde::{Deserialize, Serialize};
 use serde_with::serde_as;
 use bson::Bson;
 use bson::DateTime as BsonDateTime;
+use std::str::FromStr;
 
 #[allow(non_snake_case)]
 #[serde_as]
@@ -29,11 +30,13 @@ impl ListDatabaseModel {
     }
     pub fn update(id: String, name: String, createdAt: String) -> Self {
 
+        println!("ListDatabaseModel::update - id: {:?}", id);
+
         // change string into DateTime
         let createdDate = BsonDateTime::parse_rfc3339_str(&createdAt).unwrap();
 
         Self {
-            _id: ObjectId::new(),
+            _id: ObjectId::from_str(&id).unwrap(),
             name: name,
             createdDate: createdDate,
             updatedDate: bson::DateTime::now(),

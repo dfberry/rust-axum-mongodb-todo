@@ -114,7 +114,8 @@ pub async fn create_list(
     ) -> Result<ListDatabaseModel, Box<dyn Error>> {
 
         let filter = doc! { "_id": list._id.clone() };
-        let update = bson::to_document(list).unwrap();
+        let update_doc = bson::to_document(list).unwrap();
+        let update = doc! { "$set": update_doc};
 
         let options = FindOneAndUpdateOptions::builder()
             .return_document(ReturnDocument::After)

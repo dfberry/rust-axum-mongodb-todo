@@ -17,7 +17,7 @@ pub enum MyDBError {
     MongoDataError(#[from] mongodb::bson::document::ValueAccessError),
     #[error("invalid ID: {0}")]
     InvalidIDError(String),
-    #[error("Note with ID: {0} not found")]
+    #[error("Doc with ID: {0} not found")]
     NotFoundError(String),
 }
 

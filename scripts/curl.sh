@@ -13,6 +13,13 @@ curl -X POST \
 -d @insert_list.json \
 http://localhost:8000/lists --verbose
 
+# Edit list
+
+curl -X PUT \
+-H "Content-Type: application/json" \
+-d @update_list.json \
+http://localhost:8000/lists/65f4421a7157d5922f45d5d3 --verbose
+
 ITEM
 
 curl -X POST -H "Content-Type: application/json" -d @insert_item.json http://localhost:8000/lists/65f4421a7157d5922f45d5d3/items --verbose

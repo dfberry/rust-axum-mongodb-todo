@@ -166,11 +166,19 @@ pub async fn edit_list_handler(
     Json(body): Json<UpdateListRequestModel>,
 ) -> Response {
 
+    println!("id: {:?}", id.clone());
+    println!("body.id: {:?}", body.id.clone());
+
     let list: ListDatabaseModel = ListDatabaseModel::update(
         id,
         body.name.clone(),
         body.createdAt.clone()
     );
+
+    println!("list.id: {:?}", list._id.to_hex());
+
+
+
     let collection = app_state.db.collection("TodoList");
 
     match database::edit_list(&collection, &list).await {
