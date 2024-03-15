@@ -27,6 +27,7 @@ use crate::item::{
 #[debug_handler]
 pub async fn get_items_handler(
     State(app_state): State<Arc<AppState>>,
+    Path(listId): Path<String>,
     opts: Option<Query<FilterOptions>>,
 ) -> Response {
     let Query(opts) = opts.unwrap_or_default();
@@ -35,7 +36,7 @@ pub async fn get_items_handler(
 
     let collection: Collection<ItemDatabaseModel> = app_state.db.collection("TodoItem");
 
-    match database::fetch_items(&collection, limit, page).await {
+    match database::fetch_items(&collection, &listId, limit, page).await {
         Ok(res) => {
             let res: Vec<_> = res.iter().map(|x| x.read()).collect();
 

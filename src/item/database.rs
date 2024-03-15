@@ -14,16 +14,22 @@ use crate::item::database_model::ItemDatabaseModel;
 
 pub async fn fetch_items(
     collection: &Collection<ItemDatabaseModel>,
+    listId: &String,
     limit: i64,
     page: i64,
 ) -> Result<Vec<ItemDatabaseModel>, Box<dyn Error>> {
+
+    let listId_as_object = ObjectId::from_str(&listId).map_err(|_| NotFoundError(listId.clone()))?;
+
+    let filter = doc! { "listId": listId_as_object };
+
     let find_options = FindOptions::builder()
         .limit(limit)
         .skip(u64::try_from((page - 1) * limit).unwrap())
         .build();
 
     let mut cursor = collection
-        .find(None, find_options)
+        .find(Some(filter), find_options)
         .await
         .map_err(MongoQueryError)?;
 
