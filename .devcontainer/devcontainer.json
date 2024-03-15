@@ -7,7 +7,9 @@
 	"customizations": {
 		"vscode": {
 			"extensions": [
-				"jinxdash.prettier-rust"
+				"jinxdash.prettier-rust",
+				"mkloubert.vscode-http-client",
+				"mongodb.mongodb-vscode"
 			]
 		}
 	},

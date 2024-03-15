@@ -1,14 +1,18 @@
-use crate::list::database;
-use crate::list::database_model::ListDatabaseModel;
-use crate::list::request_model::NewListRequestModel;
-use crate::AppState;
+use crate::list::{
+    database,
+    database_model::ListDatabaseModel,
+    request_model::NewListRequestModel
+};
+use crate::shared::request_model::FilterOptions;
 
+use crate::AppState;
 use axum::{
     body::{Body, Bytes},
     extract::{Path, Query, State},
     http::StatusCode,
     Json,
     response::{IntoResponse, Response},
+    debug_handler
 };
 use futures::stream;
 use futures::stream::iter;
@@ -17,12 +21,6 @@ use mongodb::Collection;
 use serde::Deserialize;
 use serde_json::json;
 use std::sync::Arc;
-use axum::debug_handler;
-#[derive(Deserialize, Debug, Default)]
-pub struct FilterOptions {
-    pub page: Option<usize>,
-    pub limit: Option<usize>,
-}
 
 #[debug_handler]
 pub async fn get_lists_handler(
@@ -36,7 +34,7 @@ pub async fn get_lists_handler(
     let page = opts.page.unwrap_or(1) as i64;
 
     let collection: Collection<ListDatabaseModel> = app_state.db.collection("TodoList");
-    match database::fetch_list(&collection, limit, page).await {
+    match database::fetch_lists(&collection, limit, page).await {
         Ok(res) => {
             let res: Vec<_> = res.iter().map(|x| x.read()).collect();
 
@@ -63,11 +61,8 @@ pub async fn get_lists_handler(
 }
 #[debug_handler]
 pub async fn create_list_handler(
-   
-    
     State(app_state): State<Arc<AppState>>, 
     Json(body): Json<NewListRequestModel>,
-
 ) -> Response {
 
     let new_list = ListDatabaseModel::new(body.name.clone());

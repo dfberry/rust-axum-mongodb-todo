@@ -1,0 +1,20 @@
+[
+    {
+        "id": "65df3d5934761793df5fbe46",
+        "name": "My List",
+        "createdAt": "2024-02-28T14:04:09.466Z",
+        "updatedAt": "2024-02-28T14:04:09.466Z"
+    },
+    {
+        "id": "65e66a8d7b947912c00a34db",
+        "name": "Yard work",
+        "createdAt": "2024-03-05T00:42:53.54Z",
+        "updatedAt": "2024-03-05T00:42:53.54Z"
+    },
+    {
+        "id": "65f09dad64a469b38092e8de",
+        "name": "my list 3",
+        "createdAt": "2024-03-12T18:23:41.126Z",
+        "updatedAt": "2024-03-12T18:23:41.126Z"
+    }
+]

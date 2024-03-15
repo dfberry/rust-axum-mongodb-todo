@@ -1,22 +1,22 @@
 use crate::shared::database_error::MyDBError::MongoDuplicateError;
 use crate::shared::database_error::MyDBError::MongoQueryError;
 use crate::shared::database_error::MyDBError::NotFoundError;
-use crate::list::database_model::ListDatabaseModel;
-use crate::list::request_model::NewListRequestModel;
-use bson::Bson;
+use std::error::Error;
+
 use chrono::prelude::*;
 use futures::StreamExt;
 use mongodb::bson::{doc, oid::ObjectId, Document};
 use mongodb::options::{FindOneAndUpdateOptions, FindOptions, IndexOptions, ReturnDocument};
-use mongodb::Database;
 use mongodb::{bson, options::ClientOptions, Client, Collection, IndexModel};
-use std::error::Error;
 use std::str::FromStr;
-pub async fn fetch_lists(
-    collection: &Collection<ListDatabaseModel>,
+
+use crate::item::database_model::ItemDatabaseModel;
+
+pub async fn fetch_items(
+    collection: &Collection<ItemDatabaseModel>,
     limit: i64,
     page: i64,
-) -> Result<Vec<ListDatabaseModel>, Box<dyn Error>> {
+) -> Result<Vec<ItemDatabaseModel>, Box<dyn Error>> {
     let find_options = FindOptions::builder()
         .limit(limit)
         .skip(u64::try_from((page - 1) * limit).unwrap())
@@ -27,10 +27,13 @@ pub async fn fetch_lists(
         .await
         .map_err(MongoQueryError)?;
 
-    let mut db_result: Vec<ListDatabaseModel> = Vec::new();
+    let mut db_result: Vec<ItemDatabaseModel> = Vec::new();
     while let Some(doc) = cursor.next().await {
         match doc {
-            Ok(item) => db_result.push(item),
+            Ok(item) => {
+                println!("fetch_items returns {:?}", item);
+                db_result.push(item);
+            },
             Err(e) => {
                 println!("Error processing document: {}", e);
                 continue;
@@ -38,16 +41,15 @@ pub async fn fetch_lists(
         }
     }
 
-    println!("fetch_lists returns {:?}", db_result);
+    println!("fetch_items returns {:?}", db_result);
 
     Ok(db_result)
 }
 
-pub async fn create_list(
-    collection: &Collection<ListDatabaseModel>,
-    list: &ListDatabaseModel,
-) -> Result<ListDatabaseModel, Box<dyn Error>> {
-    // Insert into collection
+pub async fn create_item(
+    collection: &Collection<ItemDatabaseModel>,
+    list: &ItemDatabaseModel,
+) -> Result<ItemDatabaseModel, Box<dyn Error>> {
     let result = match collection.insert_one(list, None).await {
         Ok(result) => result,
         Err(e) => {
@@ -70,28 +72,28 @@ pub async fn create_list(
     Ok(inserted_doc)
 }
 /*
-    pub async fn get_list(&self, id: &str) -> Result<SingleListResponse> {
+    pub async fn get_item(&self, id: &str) -> Result<SingleItemResponse> {
         let oid = ObjectId::from_str(id).map_err(|_| InvalidIDError(id.to_owned()))?;
 
-        let list_doc = self
+        let item_doc = self
             .collection_client_with_type
             .find_one(doc! {"_id":oid }, None)
             .await
             .map_err(MongoQueryError)?;
 
-        match list_doc {
+        match item_doc {
             Some(doc) => {
-                let list = self.doc_to_list(&doc)?;
-                Ok(SingleListResponse {
+                let item = self.doc_to_item(&doc)?;
+                Ok(SingleItemResponse {
                     status: "success",
-                    data: ListData { list },
+                    data: ItemData { item },
                 })
             }
             None => Err(NotFoundError(id.to_string())),
         }
     }
 
-    pub async fn edit_list(&self, id: &str, body: &UpdateListSchema) -> Result<SingleListResponse> {
+    pub async fn edit_item(&self, id: &str, body: &UpdateItemSchema) -> Result<SingleItemResponse> {
         let oid = ObjectId::from_str(id).map_err(|_| InvalidIDError(id.to_owned()))?;
 
         let update = doc! {
@@ -108,18 +110,18 @@ pub async fn create_list(
             .await
             .map_err(MongoQueryError)?
         {
-            let list = self.doc_to_list(&doc)?;
-            let list_response = SingleListResponse {
+            let item = self.doc_to_item(&doc)?;
+            let item_response = SingleItemResponse {
                 status: "success",
-                data: ListData { list },
+                data: ItemData { item },
             };
-            Ok(list_response)
+            Ok(item_response)
         } else {
             Err(NotFoundError(id.to_string()))
         }
     }
 
-    pub async fn delete_list(&self, id: &str) -> Result<()> {
+    pub async fn delete_item(&self, id: &str) -> Result<()> {
         let oid = ObjectId::from_str(id).map_err(|_| InvalidIDError(id.to_owned()))?;
         let filter = doc! {"_id": oid };
 
@@ -135,23 +137,34 @@ pub async fn create_list(
         }
     }
 
-    fn doc_to_list(&self, list: &ListModel) -> Result<ListResponse> {
+    fn doc_to_item(&self, item: &ItemModel) -> Result<ItemResponse> {
 
-        println!("doc_to_list::list: {:?}", list);
-
-        let list_response = ListResponse {
-            id: list.id.to_hex(),
-            name: list.name.to_owned(),
-            createdAt: list.createdAt,
-            updatedAt: list.updatedAt,
+        let dueDate = match item.dueDate {
+            Some(date) => Some(date),
+            None => None
         };
 
-        Ok(list_response)
+        let completedDate = match item.completedDate {
+            Some(date) => Some(date),
+            None => None
+        };
+
+        let item_response = ItemResponse {
+            id: item.id.to_hex(),
+            listId: item.listId.to_hex(),
+            name: item.name.to_owned(),
+            state: item.state.to_owned(),
+            description: item.description.to_owned(),
+            dueDate:  dueDate,
+            completedDate: completedDate
+        };
+
+        Ok(item_response)
     }
 
-    fn create_list_document(
+    fn create_item_document(
         &self,
-        body: &CreateListSchema
+        body: &CreateItemSchema
     ) -> Result<bson::Document> {
         let serialized_data = bson::to_bson(body).map_err(MongoSerializeBsonError)?;
         let document = serialized_data.as_document().unwrap();
@@ -166,5 +179,57 @@ pub async fn create_list(
 
         Ok(doc_with_dates)
     }
+    // fn get_items_state_handler(&self,
+    //     listid,
+    //     state,
+    //     skip, limit
+    // ) -> Result {
+
+
+
+/*
+    const query = TodoItemModel.find({ listId: req.params.listId, state: req.params.state });
+    const skip = req.query.skip ? parseInt(req.query.skip) : 0;
+    const top = req.query.top ? parseInt(req.query.top) : 20;
+
+    const lists = await query
+        .skip(skip)
+        .limit(top)
+        .exec();
+
+    res.json(lists);
+*/
+
+    // }
+    // fn edit_list_items_state_handler() -> Result {
+/*
+    try {
+        const completedDate = req.params.state === TodoItemState.Done ? new Date() : undefined;
+
+        const updateTasks = req.body.map(
+            id => TodoItemModel
+                .findOneAndUpdate(
+                    { listId: req.params.listId, _id: id },
+                    { state: req.params.state, completedDate: completedDate })
+                .orFail()
+                .exec()
+        );
+
+        await Promise.all(updateTasks);
+
+        res.status(204).send();
+    }
+    catch (err: any) {
+        switch (err.constructor) {
+        case mongoose.Error.CastError:
+        case mongoose.Error.DocumentNotFoundError:
+            return res.status(404).send();
+        default:
+            throw err;
+        }
+    }
+
+*/
+    //}
 }
 */

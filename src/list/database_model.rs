@@ -1,18 +1,11 @@
-use chrono::prelude::*;
-use dotenv::dotenv;
 use mongodb::bson::doc;
 use mongodb::bson::DateTime;
 use mongodb::bson::{self, oid::ObjectId};
-use mongodb::Client;
-use mongodb::Collection;
-use rand::Rng;
 use serde::{Deserialize, Serialize};
 use serde_with::serde_as;
-
-use bson::serde_helpers::deserialize_hex_string_from_object_id;
-use bson::serde_helpers::serialize_object_id_as_hex_string;
 use bson::Bson;
 
+#[allow(non_snake_case)]
 #[serde_as]
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct ListDatabaseModel {
@@ -55,6 +48,7 @@ impl ListDatabaseModel {
             "createdAt": createdDate,
             "updatedAt": updatedDate,
         };
+
         Bson::Document(doc)
     }
     pub fn to_response_body(&self) -> axum::body::Body {

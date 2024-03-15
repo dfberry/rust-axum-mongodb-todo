@@ -1,2 +1,21 @@
 https://github.com/wpcodevo/rust-axum-mongodb/blob/master/src/schema.rs
 https://github.com/wpcodevo/reactjs-crud-note-app
+
+curl -X PUT -H "Content-Type: application/json" -d '{"name":"test2-updated"}' http://localhost:8000/api/notes.65e4af448f1c934b68f61b88
+    {"matchedCount":1,"modifiedCount":1,"upsertedId":null}
+curl -X DELETE -H "Content-Type: application/json" http://localhost:8000/api/notes/65e4af448f1c934b68f61b88
+    {"deletedCount":1}
+
+curl http://localhost:8000/api/notes
+
+
+curl -X "GET" -H "Content-Type: application/json"  http://localhost:8000/api/notes
+
+
+curl -X PUT -H "Content-Type: application/json" -d '{"name":"test2-updated"}' http://localhost:8000/api/notes.65e4af448f1c934b68f61b88
+    {"matchedCount":1,"modifiedCount":1,"upsertedId":null}
+curl -X DELETE -H "Content-Type: application/json" http://localhost:8000/api/notes/65e4af448f1c934b68f61b88
+    {"deletedCount":1}
+
+
+//------------------------------------------------------
