@@ -60,6 +60,44 @@ pub async fn get_lists_handler(
     }
 }
 #[debug_handler]
+pub async fn get_single_list_handler(
+
+    State(app_state): State<Arc<AppState>>,
+    Path(id): Path<String>,
+    opts: Option<Query<FilterOptions>>,
+
+) -> Response {
+    let Query(opts) = opts.unwrap_or_default();
+    let limit = opts.limit.unwrap_or(10) as i64;
+    let page = opts.page.unwrap_or(1) as i64;
+
+    let collection: Collection<ListDatabaseModel> = app_state.db.collection("TodoList");
+    match database::fetch_single_list(&collection, &id, limit, page).await {
+        Ok(res) => {
+            let res: Vec<_> = res.iter().map(|x| x.read()).collect();
+
+            // convert res to Body
+            let body = Body::from(serde_json::to_string(&res).unwrap());
+
+            Response::builder()
+            .header(http::header::CONTENT_TYPE, "application/json")
+            .status(StatusCode::OK)
+            .body(body)
+            .unwrap()
+        }
+        Err(e) => {
+
+            let error_message = json!({ "error": e.to_string() });
+            let error_body = Body::from(error_message.to_string());
+
+            Response::builder()
+                .status(StatusCode::INTERNAL_SERVER_ERROR)
+                .body(error_body)
+                .unwrap()
+        },
+    }
+}
+#[debug_handler]
 pub async fn create_list_handler(
     State(app_state): State<Arc<AppState>>, 
     Json(body): Json<NewListRequestModel>,

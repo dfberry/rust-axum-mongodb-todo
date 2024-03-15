@@ -12,6 +12,42 @@ use mongodb::Database;
 use mongodb::{bson, options::ClientOptions, Client, Collection, IndexModel};
 use std::error::Error;
 use std::str::FromStr;
+pub async fn fetch_single_list(
+    collection: &Collection<ListDatabaseModel>,
+    id: &String,
+    limit: i64,
+    page: i64,
+) -> Result<Vec<ListDatabaseModel>, Box<dyn Error>> {
+
+    let id_as_object = ObjectId::from_str(&id).map_err(|_| NotFoundError(id.clone()))?;
+
+    let find_options = FindOptions::builder()
+        .limit(limit)
+        .skip(u64::try_from((page - 1) * limit).unwrap())
+        .build();
+
+    let filter = doc! { "_id": id_as_object };
+
+    let mut cursor = collection
+        .find(filter, find_options)
+        .await
+        .map_err(MongoQueryError)?;
+
+    let mut db_result: Vec<ListDatabaseModel> = Vec::new();
+    while let Some(doc) = cursor.next().await {
+        match doc {
+            Ok(item) => db_result.push(item),
+            Err(e) => {
+                println!("Error processing document: {}", e);
+                continue;
+            }
+        }
+    }
+
+    println!("fetch_lists returns {:?}", db_result);
+
+    Ok(db_result)
+}
 pub async fn fetch_lists(
     collection: &Collection<ListDatabaseModel>,
     limit: i64,
