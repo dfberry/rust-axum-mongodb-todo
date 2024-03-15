@@ -1,7 +1,10 @@
 use crate::list::{
     database,
     database_model::ListDatabaseModel,
-    request_model::NewListRequestModel
+    request_model::{
+        NewListRequestModel,
+        UpdateListRequestModel
+    }
 };
 use crate::shared::request_model::FilterOptions;
 
@@ -14,6 +17,7 @@ use axum::{
     response::{IntoResponse, Response},
     debug_handler
 };
+use bson::oid::ObjectId;
 use futures::stream;
 use futures::stream::iter;
 use http::header::LOCATION;
@@ -72,9 +76,11 @@ pub async fn get_single_list_handler(
     let page = opts.page.unwrap_or(1) as i64;
 
     let collection: Collection<ListDatabaseModel> = app_state.db.collection("TodoList");
-    match database::fetch_single_list(&collection, &id, limit, page).await {
+    match database::fetch_single_list(&collection, &id).await {
         Ok(res) => {
-            let res: Vec<_> = res.iter().map(|x| x.read()).collect();
+
+            // Convert res to Bson
+            let res = res.read();
 
             // convert res to Body
             let body = Body::from(serde_json::to_string(&res).unwrap());
@@ -86,6 +92,8 @@ pub async fn get_single_list_handler(
             .unwrap()
         }
         Err(e) => {
+
+            // handle not found as 404
 
             let error_message = json!({ "error": e.to_string() });
             let error_body = Body::from(error_message.to_string());
@@ -108,6 +116,9 @@ pub async fn create_list_handler(
     let collection = app_state.db.collection("TodoList");
     match database::create_list(&collection, &new_list).await {
         Ok(list) => {
+
+            // TBD handle invalid body as 400 invalid schema
+
             let json_list = list.to_response_body();
 
             let location = format!("http://{}/lists/{}", app_state.app_host, list._id);
@@ -147,23 +158,48 @@ pub async fn get_list_handler(
         Err(e) => Err(e.into()),
     }
 }
-
+*/
 pub async fn edit_list_handler(
-    Path(id): Path<String>,
+
     State(app_state): State<Arc<AppState>>,
-    Json(body): Json<UpdateItemSchema>,
-) -> Result<impl IntoResponse, (StatusCode, Json<serde_json::Value>)> {
-    match app_state
-        .collection_item
-        .edit_item(&id, &body)
-        .await
-        .map_err(CollectionError::from)
-    {
-        Ok(res) => Ok(Json(res)),
-        Err(e) => Err(e.into()),
+    Path(id): Path<String>,
+    Json(body): Json<UpdateListRequestModel>,
+) -> Response {
+
+    let list: ListDatabaseModel = ListDatabaseModel::update(
+        id,
+        body.name.clone(),
+        body.createdAt.clone()
+    );
+    let collection = app_state.db.collection("TodoList");
+
+    match database::edit_list(&collection, &list).await {
+        Ok(list) => {
+            let json_list = list.to_response_body();
+
+            Response::builder()
+                .header(http::header::CONTENT_TYPE, "application/json")
+                .status(StatusCode::OK)
+                .body(json_list)
+                .unwrap()
+
+        }
+        Err(e) => {
+
+            // TBD: handle not found as 404
+            // TBD: handle list is invalid as 400
+
+            let error_message = json!({ "error": e.to_string() });
+            let error_body = Body::from(error_message.to_string());
+
+            Response::builder()
+                .status(StatusCode::INTERNAL_SERVER_ERROR)
+                .body(error_body)
+                .unwrap()
+        },
     }
 }
-
+/* 
 pub async fn delete_list_handler(
     Path(id): Path<String>,
     State(app_state): State<Arc<AppState>>,

@@ -4,6 +4,7 @@ use mongodb::bson::{self, oid::ObjectId};
 use serde::{Deserialize, Serialize};
 use serde_with::serde_as;
 use bson::Bson;
+use bson::DateTime as BsonDateTime;
 
 #[allow(non_snake_case)]
 #[serde_as]
@@ -26,12 +27,15 @@ impl ListDatabaseModel {
 
         }
     }
-    pub async fn update(id: String, name: String) -> Self {
-        let now = bson::DateTime::now();
+    pub fn update(id: String, name: String, createdAt: String) -> Self {
+
+        // change string into DateTime
+        let createdDate = BsonDateTime::parse_rfc3339_str(&createdAt).unwrap();
+
         Self {
             _id: ObjectId::new(),
             name: name,
-            createdDate: now,
+            createdDate: createdDate,
             updatedDate: bson::DateTime::now(),
         }
     }

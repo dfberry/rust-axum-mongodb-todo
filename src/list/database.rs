@@ -3,6 +3,7 @@ use crate::shared::database_error::MyDBError::MongoQueryError;
 use crate::shared::database_error::MyDBError::NotFoundError;
 use crate::list::database_model::ListDatabaseModel;
 use crate::list::request_model::NewListRequestModel;
+use crate::shared::database_error::MyDBError;
 use bson::Bson;
 use chrono::prelude::*;
 use futures::StreamExt;
@@ -12,41 +13,21 @@ use mongodb::Database;
 use mongodb::{bson, options::ClientOptions, Client, Collection, IndexModel};
 use std::error::Error;
 use std::str::FromStr;
+use mongodb::options::FindOneOptions;
 pub async fn fetch_single_list(
     collection: &Collection<ListDatabaseModel>,
     id: &String,
-    limit: i64,
-    page: i64,
-) -> Result<Vec<ListDatabaseModel>, Box<dyn Error>> {
+) -> Result<ListDatabaseModel, Box<dyn Error>> {
 
     let id_as_object = ObjectId::from_str(&id).map_err(|_| NotFoundError(id.clone()))?;
 
-    let find_options = FindOptions::builder()
-        .limit(limit)
-        .skip(u64::try_from((page - 1) * limit).unwrap())
-        .build();
-
     let filter = doc! { "_id": id_as_object };
 
-    let mut cursor = collection
-        .find(filter, find_options)
-        .await
-        .map_err(MongoQueryError)?;
-
-    let mut db_result: Vec<ListDatabaseModel> = Vec::new();
-    while let Some(doc) = cursor.next().await {
-        match doc {
-            Ok(item) => db_result.push(item),
-            Err(e) => {
-                println!("Error processing document: {}", e);
-                continue;
-            }
-        }
+    match collection.find_one(filter, None).await {
+        Ok(Some(doc)) => Ok(doc),
+        Ok(None) => Err(Box::new(NotFoundError(id.clone()))),
+        Err(e) => Err(Box::new(MongoQueryError(e))),
     }
-
-    println!("fetch_lists returns {:?}", db_result);
-
-    Ok(db_result)
 }
 pub async fn fetch_lists(
     collection: &Collection<ListDatabaseModel>,
@@ -126,35 +107,29 @@ pub async fn create_list(
             None => Err(NotFoundError(id.to_string())),
         }
     }
+*/
+    pub async fn edit_list(
+        collection: &Collection<ListDatabaseModel>, 
+        list: &ListDatabaseModel
+    ) -> Result<ListDatabaseModel, Box<dyn Error>> {
 
-    pub async fn edit_list(&self, id: &str, body: &UpdateListSchema) -> Result<SingleListResponse> {
-        let oid = ObjectId::from_str(id).map_err(|_| InvalidIDError(id.to_owned()))?;
-
-        let update = doc! {
-            "$set": bson::to_document(body).map_err(MongoSerializeBsonError)?,
-        };
+        let filter = doc! { "_id": list._id.clone() };
+        let update = bson::to_document(list).unwrap();
 
         let options = FindOneAndUpdateOptions::builder()
             .return_document(ReturnDocument::After)
             .build();
 
-        if let Some(doc) = self
-            .collection_client_with_type
-            .find_one_and_update(doc! {"_id": oid}, update, options)
+        match collection
+            .find_one_and_update(filter, update, options)
             .await
-            .map_err(MongoQueryError)?
         {
-            let list = self.doc_to_list(&doc)?;
-            let list_response = SingleListResponse {
-                status: "success",
-                data: ListData { list },
-            };
-            Ok(list_response)
-        } else {
-            Err(NotFoundError(id.to_string()))
+            Ok(Some(doc)) => Ok(doc),
+            Ok(None) => Err(Box::new(NotFoundError(list._id.to_string()))),
+            Err(e) => Err(Box::new(MyDBError::MongoQueryError(e))),
         }
     }
-
+/*
     pub async fn delete_list(&self, id: &str) -> Result<()> {
         let oid = ObjectId::from_str(id).map_err(|_| InvalidIDError(id.to_owned()))?;
         let filter = doc! {"_id": oid };
