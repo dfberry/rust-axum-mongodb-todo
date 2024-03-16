@@ -7,7 +7,7 @@ use axum::{
 
 use crate::{
     item::handler::{create_item_handler, get_items_handler},
-    list::handler::{create_list_handler, get_lists_handler, get_single_list_handler, edit_list_handler},
+    list::handler::{create_list_handler, get_lists_handler, get_single_list_handler, edit_list_handler, delete_list_handler},
 };
 
 use crate::AppState;
@@ -42,9 +42,7 @@ pub fn list_routes(app_state: Arc<AppState>) -> Router {
     Router::new()
         .route("/", post(create_list_handler))
         .route("/", get(get_lists_handler))
-        .route("/:id",get(get_single_list_handler).put(edit_list_handler))
-        //            .delete(delete_list_handler)
-        //    )
+        .route("/:id",get(get_single_list_handler).put(edit_list_handler).delete(delete_list_handler))
         .with_state(app_state.clone())
 }
 pub fn list_items_routes(app_state: Arc<AppState>) -> Router {

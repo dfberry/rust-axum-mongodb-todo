@@ -72,8 +72,6 @@ pub async fn get_single_list_handler(
 
 ) -> Response {
     let Query(opts) = opts.unwrap_or_default();
-    let limit = opts.limit.unwrap_or(10) as i64;
-    let page = opts.page.unwrap_or(1) as i64;
 
     let collection: Collection<ListDatabaseModel> = app_state.db.collection("TodoList");
     match database::fetch_single_list(&collection, &id).await {
@@ -143,22 +141,6 @@ pub async fn create_list_handler(
         },
     }
 }
-/*
-pub async fn get_list_handler(
-    Path(id): Path<String>,
-    State(app_state): State<Arc<AppState>>,
-) -> Result<impl IntoResponse, (StatusCode, Json<serde_json::Value>)> {
-    match app_state
-        .collection_item
-        .get_item(&id)
-        .await
-        .map_err(CollectionError::from)
-    {
-        Ok(res) => Ok(Json(res)),
-        Err(e) => Err(e.into()),
-    }
-}
-*/
 pub async fn edit_list_handler(
 
     State(app_state): State<Arc<AppState>>,
@@ -176,8 +158,6 @@ pub async fn edit_list_handler(
     );
 
     println!("list.id: {:?}", list._id.to_hex());
-
-
 
     let collection = app_state.db.collection("TodoList");
 
@@ -207,19 +187,35 @@ pub async fn edit_list_handler(
         },
     }
 }
-/* 
 pub async fn delete_list_handler(
     Path(id): Path<String>,
     State(app_state): State<Arc<AppState>>,
-) -> Result<impl IntoResponse, (StatusCode, Json<serde_json::Value>)> {
-    match app_state
-        .collection_item
-        .delete_item(&id)
-        .await
-        .map_err(CollectionError::from)
-    {
-        Ok(_) => Ok(StatusCode::NO_CONTENT),
-        Err(e) => Err(e.into()),
+) -> Response {
+    let collection = app_state.db.collection("TodoList");
+
+    match database::delete_list(&collection, &id).await {
+        Ok(a) => {
+            Response::builder()
+                .header(http::header::CONTENT_TYPE, "application/json")
+                .status(StatusCode::NO_CONTENT)
+                // Remove the .unwrap() method call
+                .body(Body::empty())
+                .expect("Failed to build response")
+
+        }
+        Err(e) => {
+
+            // TBD: handle not found as 404
+            // TBD: handle list is invalid as 400
+
+            let error_message = json!({ "error": e.to_string() });
+            let error_body = Body::from(error_message.to_string());
+
+            Response::builder()
+                .status(StatusCode::INTERNAL_SERVER_ERROR)
+                .body(error_body)
+                .unwrap()
+        },
     }
 }
-*/
+

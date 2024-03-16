@@ -86,28 +86,6 @@ pub async fn create_list(
 
     Ok(inserted_doc)
 }
-/*
-    pub async fn get_list(&self, id: &str) -> Result<SingleListResponse> {
-        let oid = ObjectId::from_str(id).map_err(|_| InvalidIDError(id.to_owned()))?;
-
-        let list_doc = self
-            .collection_client_with_type
-            .find_one(doc! {"_id":oid }, None)
-            .await
-            .map_err(MongoQueryError)?;
-
-        match list_doc {
-            Some(doc) => {
-                let list = self.doc_to_list(&doc)?;
-                Ok(SingleListResponse {
-                    status: "success",
-                    data: ListData { list },
-                })
-            }
-            None => Err(NotFoundError(id.to_string())),
-        }
-    }
-*/
     pub async fn edit_list(
         collection: &Collection<ListDatabaseModel>, 
         list: &ListDatabaseModel
@@ -130,53 +108,27 @@ pub async fn create_list(
             Err(e) => Err(Box::new(MyDBError::MongoQueryError(e))),
         }
     }
-/*
-    pub async fn delete_list(&self, id: &str) -> Result<()> {
-        let oid = ObjectId::from_str(id).map_err(|_| InvalidIDError(id.to_owned()))?;
-        let filter = doc! {"_id": oid };
 
-        let result = self
-            .collection_client_without_type
+    pub async fn delete_list(
+        collection: &Collection<ListDatabaseModel>, 
+        id: &str
+    ) -> Result<(), Box<dyn Error>>{
+
+
+        // convert string into ObjectId
+        let id_as_object = ObjectId::from_str(id).map_err(|_| NotFoundError(id.to_string()))?;
+        let filter = doc! {"_id": id_as_object };
+
+        match collection
             .delete_one(filter, None)
             .await
-            .map_err(MongoQueryError)?;
-
-        match result.deleted_count {
-            0 => Err(NotFoundError(id.to_string())),
-            _ => Ok(()),
-        }
+            {
+                Ok(result) => {
+                    match result.deleted_count {
+                        0 => Err(Box::new(NotFoundError(id.to_string()))),
+                        _ => Ok(()),
+                    }
+                }
+                Err(e) => Err(Box::new(MyDBError::MongoQueryError(e))),
+            }
     }
-
-    fn doc_to_list(&self, list: &ListModel) -> Result<ListResponse> {
-
-        println!("doc_to_list::list: {:?}", list);
-
-        let list_response = ListResponse {
-            id: list.id.to_hex(),
-            name: list.name.to_owned(),
-            createdAt: list.createdAt,
-            updatedAt: list.updatedAt,
-        };
-
-        Ok(list_response)
-    }
-
-    fn create_list_document(
-        &self,
-        body: &CreateListSchema
-    ) -> Result<bson::Document> {
-        let serialized_data = bson::to_bson(body).map_err(MongoSerializeBsonError)?;
-        let document = serialized_data.as_document().unwrap();
-
-        let datetime = Utc::now();
-
-        let mut doc_with_dates = doc! {
-            "createdAt": datetime,
-            "updatedAt": datetime
-        };
-        doc_with_dates.extend(document.clone());
-
-        Ok(doc_with_dates)
-    }
-}
-*/
