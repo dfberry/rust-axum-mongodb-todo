@@ -9,7 +9,7 @@ use mongodb::bson::{doc, oid::ObjectId, Document};
 use mongodb::options::{FindOneAndUpdateOptions, FindOptions, IndexOptions, ReturnDocument};
 use mongodb::{bson, options::ClientOptions, Client, Collection, IndexModel};
 use std::str::FromStr;
-
+use crate::shared::database_error::MyDBError;
 use crate::item::database_model::ItemDatabaseModel;
 
 pub async fn fetch_items(
@@ -54,9 +54,9 @@ pub async fn fetch_items(
 
 pub async fn create_item(
     collection: &Collection<ItemDatabaseModel>,
-    list: &ItemDatabaseModel,
+    item: &ItemDatabaseModel,
 ) -> Result<ItemDatabaseModel, Box<dyn Error>> {
-    let result = match collection.insert_one(list, None).await {
+    let result = match collection.insert_one(item, None).await {
         Ok(result) => result,
         Err(e) => {
             if e.to_string()
@@ -77,56 +77,53 @@ pub async fn create_item(
 
     Ok(inserted_doc)
 }
-/*
-    pub async fn get_item(&self, id: &str) -> Result<SingleItemResponse> {
-        let oid = ObjectId::from_str(id).map_err(|_| InvalidIDError(id.to_owned()))?;
 
-        let item_doc = self
-            .collection_client_with_type
-            .find_one(doc! {"_id":oid }, None)
-            .await
-            .map_err(MongoQueryError)?;
+    pub async fn get_single_item(
+        collection: &Collection<ItemDatabaseModel>, 
+        listId: &String,
+        id: &String
+    ) -> Result<ItemDatabaseModel, Box<dyn Error>> {
+        let id_as_object = ObjectId::from_str(id).map_err(|_| NotFoundError(id.to_string()))?;
+        let listId_as_object = ObjectId::from_str(listId).map_err(|_| NotFoundError(listId.clone()))?;
+       
+        let filter = doc! { "_id": id_as_object, "listId": listId_as_object};
 
-        match item_doc {
-            Some(doc) => {
-                let item = self.doc_to_item(&doc)?;
-                Ok(SingleItemResponse {
-                    status: "success",
-                    data: ItemData { item },
-                })
-            }
-            None => Err(NotFoundError(id.to_string())),
+        match collection
+        .find_one(filter, None)
+        .await {
+            Ok(Some(doc)) => Ok(doc),
+            Ok(None) => Err(Box::new(NotFoundError(id.clone()))),
+            Err(e) => Err(Box::new(MongoQueryError(e))),
         }
     }
 
-    pub async fn edit_item(&self, id: &str, body: &UpdateItemSchema) -> Result<SingleItemResponse> {
-        let oid = ObjectId::from_str(id).map_err(|_| InvalidIDError(id.to_owned()))?;
-
-        let update = doc! {
-            "$set": bson::to_document(body).map_err(MongoSerializeBsonError)?,
-        };
+    pub async fn edit_item(
+        collection: &Collection<ItemDatabaseModel>, 
+        listId: &String,
+        id: &String, 
+        item: &ItemDatabaseModel
+    ) -> Result<ItemDatabaseModel, Box<dyn Error>> {
+        let id_as_object = ObjectId::from_str(id).map_err(|_| NotFoundError(id.to_string()))?;
+        let listId_as_object = ObjectId::from_str(listId).map_err(|_| NotFoundError(listId.clone()))?;
+       
+        let filter = doc! { "_id": id_as_object, "listId": listId_as_object};
+        let update_doc = bson::to_document(item).unwrap();
+        let update = doc! { "$set": update_doc};
 
         let options = FindOneAndUpdateOptions::builder()
             .return_document(ReturnDocument::After)
             .build();
 
-        if let Some(doc) = self
-            .collection_client_with_type
-            .find_one_and_update(doc! {"_id": oid}, update, options)
+        match collection
+            .find_one_and_update(filter, update, options)
             .await
-            .map_err(MongoQueryError)?
-        {
-            let item = self.doc_to_item(&doc)?;
-            let item_response = SingleItemResponse {
-                status: "success",
-                data: ItemData { item },
-            };
-            Ok(item_response)
-        } else {
-            Err(NotFoundError(id.to_string()))
-        }
+            {
+                Ok(Some(doc)) => Ok(doc),
+                Ok(None) => Err(Box::new(NotFoundError(item._id.to_string()))),
+                Err(e) => Err(Box::new(MyDBError::MongoQueryError(e))),
+            }
     }
-
+/* 
     pub async fn delete_item(&self, id: &str) -> Result<()> {
         let oid = ObjectId::from_str(id).map_err(|_| InvalidIDError(id.to_owned()))?;
         let filter = doc! {"_id": oid };

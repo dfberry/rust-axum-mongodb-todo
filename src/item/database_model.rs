@@ -48,8 +48,8 @@ pub struct ItemDatabaseModel {
     pub description: Option<String>,
     pub dueDate: Option<DateTime>,
     pub completedDate: Option<DateTime>,
-    pub createdDate: DateTime,
-    pub updatedDate: Option<DateTime>,
+    pub createdAt: DateTime,
+    pub updatedAt: Option<DateTime>,
 }
 impl ItemDatabaseModel {
     pub fn string_to_optional_datetime2(s: &String) -> Option<BsonDateTime> {
@@ -86,21 +86,21 @@ impl ItemDatabaseModel {
             description: description,
             dueDate: due_date,
             completedDate: None,
-            createdDate: now,
-            updatedDate: None,
+            createdAt: now,
+            updatedAt: None,
 
         }
     }
-    pub async fn update(
+    pub fn update(
         id: String, 
-        listid: String,
+        listId: String,
         name: String,
         state: Option<String>,
         description: Option<String>,
         dueDate: Option<String>,
         completedDate: Option<String>,
-        createdDate: String,
-        updatedDated: Option<String>
+        createdAt: String,
+        updatedAt: Option<String>
     ) -> Self {
         let now = bson::DateTime::now();
         let due_date = match dueDate {
@@ -111,21 +111,21 @@ impl ItemDatabaseModel {
             Some(s) => ItemDatabaseModel::string_to_optional_datetime2(&s),
             None => None
         };
-        let created_date = ItemDatabaseModel::string_to_datetime(&createdDate);
+        let created_date = ItemDatabaseModel::string_to_datetime(&createdAt);
 
         let state = state.unwrap();
         let optional_state = TodoItemState::from_string(&state);
 
         Self {
             _id: ObjectId::from_str(&id).unwrap(),
-            listId: ObjectId::from_str(&listid).unwrap(),
+            listId: ObjectId::from_str(&listId).unwrap(),
             name: name,
             state: optional_state,
             description: description,
             dueDate: due_date,
             completedDate: completed_date,
-            createdDate: created_date,
-            updatedDate: Some(now),
+            createdAt: created_date,
+            updatedAt: Some(now),
         }
     }
     pub fn read(&self) -> Bson {
@@ -141,9 +141,9 @@ impl ItemDatabaseModel {
 
         let due_date = self.dueDate.map(|date| date.try_to_rfc3339_string().unwrap());
         let completed_date = self.completedDate.map(|date| date.try_to_rfc3339_string().unwrap());
-        let updated_date = self.updatedDate.map(|date| date.try_to_rfc3339_string().unwrap());
+        let updated_date = self.updatedAt.map(|date| date.try_to_rfc3339_string().unwrap());
     
-        let created_date = self.createdDate.try_to_rfc3339_string().unwrap();
+        let created_date = self.createdAt.try_to_rfc3339_string().unwrap();
     
         let doc = doc! {
             "id": id,
@@ -153,8 +153,8 @@ impl ItemDatabaseModel {
             "description": description,
             "dueDate": due_date,
             "completedDate": completed_date,
-            "createdDate": created_date,
-            "updatedDate": updated_date,
+            "createdAt": created_date,
+            "updatedAt": updated_date,
         };
 
         Bson::Document(doc)

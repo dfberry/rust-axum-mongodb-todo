@@ -24,5 +24,15 @@ curl -X DELETE -H "Content-Type: application/json"  http://localhost:8000/lists/
 
 ITEM
 
+# Get item by id
+curl -X "GET" -H "Content-Type: application/json"  http://localhost:8000/lists/65df3d5934761793df5fbe46/items/65df3e7134761793df5fbe4d --verbose
+
+# Edit item by id 
+curl -X "PUT" \
+-H "Content-Type: application/json"  \
+-d @update_item.json \
+http://localhost:8000/lists/65df3d5934761793df5fbe46/items/65df3e7134761793df5fbe4d --verbose
+
+
 curl -X POST -H "Content-Type: application/json" -d @insert_item.json http://localhost:8000/lists/65f4421a7157d5922f45d5d3/items --verbose
 curl -X "GET" -H "Content-Type: application/json"  http://localhost:8000/lists/65f4421a7157d5922f45d5d3/items --verbose
