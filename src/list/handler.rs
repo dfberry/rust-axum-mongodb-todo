@@ -198,7 +198,6 @@ pub async fn delete_list_handler(
             Response::builder()
                 .header(http::header::CONTENT_TYPE, "application/json")
                 .status(StatusCode::NO_CONTENT)
-                // Remove the .unwrap() method call
                 .body(Body::empty())
                 .expect("Failed to build response")
 

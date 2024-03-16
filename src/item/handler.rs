@@ -194,15 +194,42 @@ pub async fn edit_item_handler(
             },
         }
 }
-/* 
+
 pub async fn delete_item_handler(
-    Path(id): Path<String>,
+    Path((listId, id)): Path<(String, String)>,
     State(app_state): State<Arc<AppState>>,
-) -> Result<impl IntoResponse, (StatusCode, Json<serde_json::Value>)> {
-    match app_state.collection_item.delete_item(&id).await.map_err(CollectionError::from) {
-        Ok(_) => Ok(StatusCode::NO_CONTENT),
-        Err(e) => Err(e.into()),
-    }
+) -> Response {
+
+    println!("delete_item_handler: listId: {:?}, id: {:?} ", listId, id);;
+
+    let collection = app_state.db.collection("TodoItem");
+
+    match database::delete_item(&collection, &listId, &id)
+        .await{
+            Ok(item) => {
+    
+                Response::builder()
+                .header(http::header::CONTENT_TYPE, "application/json")
+                .status(StatusCode::NO_CONTENT)
+                .body(Body::empty())
+                .expect("Failed to build response")
+
+    
+            }
+            Err(e) => {
+    
+                // TBD: handle not found as 404
+                // TBD: handle list is invalid as 400
+    
+                let error_message = json!({ "error": e.to_string() });
+                let error_body = Body::from(error_message.to_string());
+    
+                Response::builder()
+                    .status(StatusCode::INTERNAL_SERVER_ERROR)
+                    .body(error_body)
+                    .unwrap()
+            },
+        }
 }
 
 // pub async fn get_items_state_handler(
@@ -230,4 +257,3 @@ pub async fn delete_item_handler(
 //     }
 // }
 
-*/

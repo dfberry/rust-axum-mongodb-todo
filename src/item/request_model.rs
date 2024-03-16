@@ -6,7 +6,7 @@ pub struct NewItemRequestModel {
     pub name: String,
     pub state: Option<String>,
     pub description: Option<String>,
-    pub dueDate: Option<String>,
+    pub dueDate: Option<String>
 }
 #[derive(Deserialize)]
 pub struct UpdateItemRequestModel {

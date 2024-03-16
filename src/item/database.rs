@@ -123,23 +123,30 @@ pub async fn create_item(
                 Err(e) => Err(Box::new(MyDBError::MongoQueryError(e))),
             }
     }
-/* 
-    pub async fn delete_item(&self, id: &str) -> Result<()> {
-        let oid = ObjectId::from_str(id).map_err(|_| InvalidIDError(id.to_owned()))?;
-        let filter = doc! {"_id": oid };
 
-        let result = self
-            .collection_client_without_type
-            .delete_one(filter, None)
-            .await
-            .map_err(MongoQueryError)?;
+    pub async fn delete_item(
+        collection: &Collection<ItemDatabaseModel>, 
+        listId: &String,
+        id: &String, 
+    ) -> Result<ItemDatabaseModel, Box<dyn Error>> {
 
-        match result.deleted_count {
-            0 => Err(NotFoundError(id.to_string())),
-            _ => Ok(()),
+        println!("delete_item: listId: {:?}, id: {:?} ", listId, id);
+
+        let id_as_object = ObjectId::from_str(id).map_err(|_| NotFoundError(id.to_string()))?;
+        let listId_as_object = ObjectId::from_str(listId).map_err(|_| NotFoundError(listId.clone()))?;
+       
+        let filter = doc! { "_id": id_as_object, "listId": listId_as_object};
+
+        match collection
+        .find_one_and_delete(filter, None)
+        .await
+        {
+            Ok(Some(doc)) => Ok(doc),
+            Ok(None) => Err(Box::new(NotFoundError(id.to_string()))),
+            Err(e) => Err(Box::new(MyDBError::MongoQueryError(e))),
         }
     }
-
+/* 
     fn doc_to_item(&self, item: &ItemModel) -> Result<ItemResponse> {
 
         let dueDate = match item.dueDate {
